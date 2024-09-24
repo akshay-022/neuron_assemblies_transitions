@@ -124,6 +124,6 @@ def overlap_grand_sim(n=100000,k=317,p=0.01,beta=0.05,min_iter=10,max_iter=30):
 		proj_intersection = bu.overlap(D_saved_winners[0], D_saved_winners[1])
 		proj_overlap = float(proj_intersection)/float(k)
 
-		print "t=" + str(i) + " : " + str(assembly_overlap) + " -> " + str(proj_overlap) + "\n"
+		print( "t=" + str(i) + " : " + str(assembly_overlap) + " -> " + str(proj_overlap) + "\n")
 		results[assembly_overlap] = proj_overlap
 	return results
