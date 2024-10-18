@@ -518,7 +518,7 @@ class Brain:
                     connectomes[target_area_name], target_area._new_w
                 )
             else:
-                target_connectome = connectomes[target_area_name]
+                target_connectome = connectomes[target_area.name]
             first_winner_synapses = target_connectome[target_area.w :]
             for i in range(num_first_winners_processed):
                 first_winner_synapses[i] = inputs_by_first_winner_index[i][
