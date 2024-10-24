@@ -22,7 +22,7 @@ def fixed_assembly_test(n=100000, k=317, p=0.01, beta=0.01):
         b.project({"stim": ["A"]}, {"A": ["A"]})
         print(b.area_by_name["A"].w)
     b.area_by_name["A"].unfix_assembly()
-    for i in range(5):
+    for i in range(50):
         b.project({"stim": ["A"]}, {"A": ["A"]})
         print(b.area_by_name["A"].w)
 
@@ -98,6 +98,6 @@ def explicit_assembly_recurrent():
 
 
 if __name__ == "__main__":
-    # fixed_assembly_test()
+    fixed_assembly_test()
     # explicit_assembly_test()
-    explicit_assembly_test2()
+    # explicit_assembly_test2()
