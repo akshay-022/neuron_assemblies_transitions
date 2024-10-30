@@ -31,6 +31,8 @@ Figure out how get winners while assemblies are frozen
 
 """
 T = 0.95
+Z = 3
+FOLDS = 100
 
 
 def is_converged(set_1: List, set_2: List) -> bool:
@@ -74,7 +76,6 @@ def e1(n=100000, k=317, p=0.01, beta=0.01):
     b.project({"control": ["A"]}, {})
     stim_A_neurons = b.area_by_name["A"].saved_winners[-1]
 
-    FOLDS = 300
     reward_example = {
         "areas_by_stim": {"reward": ["A"]},
         "dst_areas_by_src_area": {"A": ["A"]},
@@ -115,7 +116,6 @@ def e1(n=100000, k=317, p=0.01, beta=0.01):
     associations = []
     stim_to_reward = []
     control_to_reward = []
-    Z = 3
     for i in tqdm(range(FOLDS)):
         for _ in range(Z):
             b.project(
@@ -129,26 +129,37 @@ def e1(n=100000, k=317, p=0.01, beta=0.01):
             stim_example["areas_by_stim"],
             stim_example["dst_areas_by_src_area"],
         )
-        stim_to_reward.append(b.area_by_name["A"].saved_winners[-1] * Z)
+        stim_to_reward.append(b.area_by_name["A"].saved_winners[-1])
 
         b.project(
             control_example["areas_by_stim"],
             control_example["dst_areas_by_src_area"],
         )
-        control_to_reward.append(b.area_by_name["A"].saved_winners[-1] * Z)
+        control_to_reward.append(b.area_by_name["A"].saved_winners[-1])
         # b.area_by_name["A"].unfix_assembly()
 
     stim_overlap = [iou(stim_A, a) for a in associations]
     reward_overlap = [iou(reward_A, a) for a in associations]
     stim_to_reward_overlap = [iou(reward_A, a) for a in stim_to_reward]
     control_to_reward_overlap = [iou(reward_A, a) for a in control_to_reward]
+    output_index = list(range(len(stim_overlap)))[::Z]
 
-    colors = {"reward": "r", "stim": "b"}
+    colors = {"reward": "r", "stim": "b", "exp": "g", "control": "k"}
     # plot consistency
     plt.plot(stim_overlap, label="Stimulus", color=colors["stim"])
     plt.plot(reward_overlap, label="Reward", color=colors["reward"])
-    plt.plot(control_to_reward_overlap, label="Control to Reward", color="k")
-    plt.plot(stim_to_reward_overlap, label="Stimulus to Reward", color="g")
+    plt.plot(
+        output_index,
+        control_to_reward_overlap,
+        label="Control to Reward",
+        color=colors["control"],
+    )
+    plt.plot(
+        output_index,
+        stim_to_reward_overlap,
+        label="Stimulus to Reward",
+        color=colors["exp"],
+    )
 
     legend_handles = [
         plt.Line2D(
@@ -159,13 +170,6 @@ def e1(n=100000, k=317, p=0.01, beta=0.01):
     plt.legend(handles=legend_handles)
     plt.savefig("iou_6.png")
     print
-
-
-def explicit_assembly_recurrent():
-    b = brain.Brain(0.1)
-    b.add_explicit_area("A", 100, 10, beta=0.5)
-
-    b.area_by_name["A"].winners = list(range(60, 70))
 
 
 if __name__ == "__main__":
