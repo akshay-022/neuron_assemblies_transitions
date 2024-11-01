@@ -1,3 +1,6 @@
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import brain
 import brain_util as bu
 import numpy as np
@@ -32,7 +35,6 @@ Todo:
 """
 
 T = 0.95  # convergence threshold
-Z = 1  # num train examples per fold
 FOLDS = 150  # num times to run train/test
 
 
@@ -59,6 +61,15 @@ def iou(set_1: List, set_2: List) -> float:
     intersection = set(set_1).intersection(set(set_2))
     union = set(set_1).union(set(set_2))
     return len(intersection) / len(union)
+
+def silence_brain(b):
+    b.winners = []
+    b._new_winners = []
+    b.saved_winners = []
+    b.num_first_winners = -1
+    return b
+
+
 
 
 def main(n=100000, k=317, p=0.01, beta=0.01):
@@ -141,53 +152,91 @@ def main(n=100000, k=317, p=0.01, beta=0.01):
     stim_to_reward2 = []
     control_to_reward1 = []
 
-    order = (["train"] * Z + ["stim", "control"]) * FOLDS
+    order = (["train1"] * FOLDS )#+ ["train2"] * FOLDS
     
-    for o in tqdm(order):
-        if o == "train":
+    stim_A_assemblies = []
+    control_A_assemblies = []
+    reward1_A_assemblies = []
+    reward2_A_assemblies = []
+
+
+    for index, o in tqdm(enumerate(order)):
+        if o == "train1":
             b.project(
-                associate_example["areas_by_stim"],
-                associate_example["dst_areas_by_src_area"],
+                associate_example1["areas_by_stim"],
+                associate_example1["dst_areas_by_src_area"],
             )
             associations.append(b.area_by_name["A"].saved_winners[-1])
+        
+        
 
-        # b.area_by_name["A"].fix_assembly()
-        if o == "stim":
-            b.project(
+        # Every nth iteration, see what the assemblies are from scratch
+        if index % 5 == 0:
+            # b.area_by_name["A"].fix_assembly()
+            b_copy = copy.deepcopy(b)
+            b_copy = silence_brain(b_copy)
+            project_until_converged(
+                b_copy,
                 stim_example["areas_by_stim"],
                 stim_example["dst_areas_by_src_area"],
+                target_area_name="A",
+                min_steps=5,
             )
-            stim_to_reward.append(b.area_by_name["A"].saved_winners[-1])
-
-        if o == "control":
-            b.project(
+            stim_A_assemblies.append(b_copy.area_by_name["A"].saved_winners[-1])
+            
+            b_copy = copy.deepcopy(b)
+            b_copy = silence_brain(b_copy)
+            project_until_converged(
+                b_copy,
                 control_example["areas_by_stim"],
                 control_example["dst_areas_by_src_area"],
+                target_area_name="A",
+                min_steps=5,
             )
-            control_to_reward.append(b.area_by_name["A"].saved_winners[-1])
-            # b.area_by_name["A"].unfix_assembly()
+            control_A_assemblies.append(b_copy.area_by_name["A"].saved_winners[-1])
 
-    stim_overlap = [iou(stim_A, a) for a in associations]
-    reward_overlap = [iou(reward_A, a) for a in associations]
-    stim_to_reward_overlap = [iou(reward_A, a) for a in stim_to_reward]
-    control_to_reward_overlap = [iou(reward_A, a) for a in control_to_reward]
-    output_index = list(range(len(stim_overlap)))[::Z]
+            b_copy = copy.deepcopy(b)
+            b_copy = silence_brain(b_copy)
+            project_until_converged(
+                b_copy,
+                reward1_example["areas_by_stim"],
+                reward1_example["dst_areas_by_src_area"],
+                target_area_name="A",
+                min_steps=5,
+            )
+            reward1_A_assemblies.append(b_copy.area_by_name["A"].saved_winners[-1])
 
-    colors = {"reward": "r", "stim": "b", "exp": "g", "control": "k"}
+            b_copy = copy.deepcopy(b)
+            b_copy = silence_brain(b_copy)
+            project_until_converged(
+                b_copy,
+                reward2_example["areas_by_stim"],
+                reward2_example["dst_areas_by_src_area"],
+                target_area_name="A",
+                min_steps=5,
+            )
+            reward2_A_assemblies.append(b_copy.area_by_name["A"].saved_winners[-1])
+
+        
+    stim_reward1_overlap = [iou(stim_A_assemblies[i], reward1_A_assemblies[i]) for i in range(len(stim_A_assemblies))]
+    control_reward2_overlap = [iou(control_A_assemblies[i], reward2_A_assemblies[i]) for i in range(len(control_A_assemblies))]
+    output_index = list(range(len(stim_reward1_overlap)))[::FOLDS]
+
+    colors = {"Control to Reward 1": "r", "Stimulus to reward 1": "b", "Stimulus to reward 2": "g", "Control to reward 2": "k"}
     # plot consistency
-    plt.plot(stim_overlap, label="Stimulus", color=colors["stim"])
-    plt.plot(reward_overlap, label="Reward", color=colors["reward"])
+    plt.plot(stim_reward1_overlap, label="Stimulus to Reward 1", color='r')
+    plt.plot(control_reward2_overlap, label="Control to Reward 2", color='b')
     plt.plot(
         output_index,
-        control_to_reward_overlap,
-        label="Control to Reward",
-        color=colors["control"],
+        control_reward2_overlap,
+        label="Control to Reward 2",
+        color='g',
     )
     plt.plot(
         output_index,
-        stim_to_reward_overlap,
-        label="Stimulus to Reward",
-        color=colors["exp"],
+        control_reward2_overlap,
+        label="Stimulus to Reward 2",
+        color='k',
     )
 
     legend_handles = [
@@ -197,7 +246,7 @@ def main(n=100000, k=317, p=0.01, beta=0.01):
         for k, v in colors.items()
     ]
     plt.legend(handles=legend_handles)
-    plt.savefig("iou_7.png")
+    plt.savefig("iou_9.png")
     print
 
 
