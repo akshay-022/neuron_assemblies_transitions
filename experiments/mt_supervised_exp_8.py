@@ -35,7 +35,7 @@ Todo:
 """
 
 T = 0.95  # convergence threshold
-FOLDS = 150  # num times to run train/test
+FOLDS = 50  # num times to run train/test
 
 
 def is_converged(set_1: List, set_2: List) -> bool:
@@ -152,7 +152,7 @@ def main(n=100000, k=317, p=0.01, beta=0.01):
     stim_to_reward2 = []
     control_to_reward1 = []
 
-    order = (["train1"] * FOLDS )#+ ["train2"] * FOLDS
+    order = (["train1"] * FOLDS + ["train2"] * FOLDS)#
     
     stim_A_assemblies = []
     control_A_assemblies = []
@@ -168,7 +168,12 @@ def main(n=100000, k=317, p=0.01, beta=0.01):
             )
             associations.append(b.area_by_name["A"].saved_winners[-1])
         
-        
+        if o == "train2":
+            b.project(
+                associate_example2["areas_by_stim"],
+                associate_example2["dst_areas_by_src_area"],
+            )
+            associations.append(b.area_by_name["A"].saved_winners[-1])
 
         # Every nth iteration, see what the assemblies are from scratch
         if index % 5 == 0:
@@ -220,24 +225,15 @@ def main(n=100000, k=317, p=0.01, beta=0.01):
         
     stim_reward1_overlap = [iou(stim_A_assemblies[i], reward1_A_assemblies[i]) for i in range(len(stim_A_assemblies))]
     control_reward2_overlap = [iou(control_A_assemblies[i], reward2_A_assemblies[i]) for i in range(len(control_A_assemblies))]
-    output_index = list(range(len(stim_reward1_overlap)))[::FOLDS]
+    stim_reward2_overlap = [iou(stim_A_assemblies[i], reward2_A_assemblies[i]) for i in range(len(stim_A_assemblies))]
+    control_reward1_overlap = [iou(control_A_assemblies[i], reward1_A_assemblies[i]) for i in range(len(control_A_assemblies))]
 
-    colors = {"Control to Reward 1": "r", "Stimulus to reward 1": "b", "Stimulus to reward 2": "g", "Control to reward 2": "k"}
+    colors = {"Control to Reward 1": "k", "Stimulus to Reward 1": "r", "Stimulus to Reward 2": "g", "Control to Reward 2": "b"}
     # plot consistency
     plt.plot(stim_reward1_overlap, label="Stimulus to Reward 1", color='r')
     plt.plot(control_reward2_overlap, label="Control to Reward 2", color='b')
-    plt.plot(
-        output_index,
-        control_reward2_overlap,
-        label="Control to Reward 2",
-        color='g',
-    )
-    plt.plot(
-        output_index,
-        control_reward2_overlap,
-        label="Stimulus to Reward 2",
-        color='k',
-    )
+    plt.plot(stim_reward2_overlap, label="Stimulus to Reward 2", color='g')
+    plt.plot(control_reward1_overlap, label="Control to Reward 1", color='k')
 
     legend_handles = [
         plt.Line2D(
