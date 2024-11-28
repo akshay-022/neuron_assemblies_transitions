@@ -254,6 +254,7 @@ def main(n=100000, k=317, p=0.01, beta=0.04):
     plt.ylabel("Intersection over Union")
     plt.title("Assembly Overlap Between Stimuli")
     plt.legend(handles=legend_handles)
+    plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.3f}'))
     plt.savefig("iou_seq_feedback_1.png")
     plt.close()
 

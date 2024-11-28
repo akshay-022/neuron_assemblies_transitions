@@ -112,10 +112,10 @@ def main(n=100000, k=317, p=0.01, beta=0.02):
 
     # # Learn the reward until convergence
     project_until_converged(b, **i1_r1_example, target_area_name="C")
-    r1_ref_assembly = b.area_by_name["C"].saved_winners[-1]
+    # r1_ref_assembly = b.area_by_name["C"].saved_winners[-1]
     b = silence_brain(b, areas)
     project_until_converged(b, **i2_r2_example, target_area_name="C")
-    r2_ref_assembly = b.area_by_name["C"].saved_winners[-1]
+    # r2_ref_assembly = b.area_by_name["C"].saved_winners[-1]
     b = silence_brain(b, areas)
 
     # set beta to 0 in all areas for testing
